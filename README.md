@@ -10,28 +10,35 @@ Revision ที่ log เปิดจริง: `1ce063a2d48c1b4cfcc7981730d042
 
 ## เปิดให้ grader
 
-ต้องมี vLLM 0.27.1 ใน environment และตั้ง `VLLM_USE_FLASHINFER_SAMPLER=0` (เครื่องนี้ไม่มี `/usr/local/cuda` สคริปต์ตั้งไว้ใน `serving/env.sh` แล้ว)
+ต้องมี vLLM 0.27.1 ใน environment `~/envs/ohm` สคริปต์ตั้ง `VLLM_USE_FLASHINFER_SAMPLER=0` เพราะเครื่องนี้ไม่มี `/usr/local/cuda`
 
 ```bash
 cd folder_TokenWork
-FINAL_MODEL=Nattapon248/mango15-sq-gptq-w8a8 \
-SERVED_NAME=shogun \
-bash serving/final.sh
+bash serving/serve.sh start
 ```
 
-`serving/final.sh` ตั้งค่าเดียวกับรอบที่ได้ 4.47×: `THINK_BUDGET=2048`, prefix caching, SSM state เป็น bfloat16, `max_num_batched_tokens=8192`, long-prefill 2048, context 49152, GPU memory utilization 0.90, reasoning parser `qwen3`, tool parser `qwen3_coder`, ปิด MTP
+`serving/serve.sh` คือชุดที่รันได้และส่งเป็นรอบ `#21` ชื่อโมเดล `nico007` พอร์ต `8001` ค่าในสคริปต์: context `40000`, `max_num_seqs=256`, `max_num_batched_tokens=8196`, long-prefill `2048`, GPU memory utilization `0.90`, SSM state เป็น bfloat16, reasoning parser `qwen3`, tool parser `qwen3_coder`, `enable_thinking` เปิด, ปิด MTP และปิด FP8 KV
 
-หลักฐานการสตาร์ตอยู่ที่ `results/serve-nutmodel.log` บรรทัด 1, 5, 8, 14–17, 27 และ 38
+`reasoning_end_str` ปิด thinking ด้วยข้อความ `I have to give the solution based on the reasoning directly now.` แล้วตามด้วย `</think>`
+
+## ผล grader รอบสุดท้าย
+
+History `#21` เริ่ม `2026-10-25 03:19:31` โมเดล `nico007`
+
+| Score | S | A | R | sE | sT | sL | η vs base | J/request | p95 TTFT | p95 TPOT | SLO-met | Accuracy |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 100.0 | 1.00 | 1.025 | 1.00 | 1.00 | 1.00 | 1.00 | 4.78× | 129 | 0.73s | 38 ms | 300/300 | 90.0% |
 
 ## สิ่งที่อยู่ในโฟลเดอร์
 
 | ที่ | คือ |
 |---|---|
-| `serving/final.sh` `env.sh` `candidate.sh` `vllm_w4a16.sh` `vllm_launch.py` | คำสั่งและ config ที่ส่ง |
+| `serving/serve.sh` | คำสั่งที่เปิดชุดส่ง ชื่อ `nico007` |
+| `serving/final.sh` `env.sh` `candidate.sh` `vllm_w4a16.sh` `vllm_launch.py` | คำสั่งรุ่นก่อน รอบ 4.47× ชื่อ `shogun` |
 | `serving/` ที่เหลือ | baseline, MTP, FP8, SGLang, GPU tune/lock ที่ลองแล้วไม่ใช้เป็นชุดส่ง |
 | `quant/Quantize_StepByStep.ipynb` | โค้ดที่สร้าง weight สูตร 1 |
 | `quant/w8a8_gptq.py` `w4a16_awq.py` `w8a8_int8.py` `splice_mtp.py` | สูตรอื่นที่วัดเทียบ |
-| `results/serve-nutmodel.log` | log เปิด weight นี้ด้วย flag ชุดสุดท้าย |
+| `results/serve-nutmodel.log` | log เปิด weight เดียวกันของรอบก่อน ชื่อ `shogun` context 49152 |
 | `slides/deck.md` | ต้นฉบับสไลด์ ไฟล์ PDF ยังต้อง export แยกตามข้อกำหนด |
 
 ## สิ่งที่ลองแล้วไม่ได้ใช้เป็นชุดส่ง
